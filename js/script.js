@@ -166,7 +166,7 @@ if (contactForm) {
     };
 
     try {
-      const resposta = await fetch('http://127.0.0.1:8000/api/contato', {
+      const resposta = await fetch('https://orbion-api.onrender.com/api/contato', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
