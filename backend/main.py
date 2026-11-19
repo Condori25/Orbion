@@ -42,6 +42,38 @@ def verificar_banco():
             status_code=500,
             detail="Não foi possível conectar ao banco de dados."
         )
+    
+
+@app.get("/api/projetos")
+def listar_projetos(db: Session = Depends(get_db)):
+    try:
+        resultado = db.execute(
+            text("""
+                SELECT
+                    id_projeto,
+                    titulo,
+                    descricao,
+                    data_inicio,
+                    data_fim,
+                    status,
+                    imagem_url,
+                    objetivos,
+                    publico_alvo,
+                    metodologia,
+                    resultados_esperados
+                FROM orbion_v2.projetos
+                ORDER BY data_inicio DESC
+            """)
+        )
+
+        return resultado.mappings().all()
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Erro ao consultar os projetos."
+        )
+
 
 
 @app.post("/api/contato")
@@ -60,7 +92,7 @@ def criar_contato(
             detail="Preencha todos os campos."
         )
 
-    if len(nome) > 100 or len(email) > 100 or len(assunto) > 150:
+    if len(nome) > 100 or len(email) > 150 or len(assunto) > 150:
         raise HTTPException(
             status_code=400,
             detail="Um ou mais campos ultrapassaram o limite permitido."
@@ -69,7 +101,7 @@ def criar_contato(
     try:
         resultado = db.execute(
             text("""
-                INSERT INTO public.contatos
+                INSERT INTO orbion_v2.contatos
                     (nome, email, assunto, mensagem)
                 VALUES
                     (:nome, :email, :assunto, :mensagem)

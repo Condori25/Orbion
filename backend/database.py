@@ -12,7 +12,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL não foi configurada no arquivo .env")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={
+        "options": "-csearch_path=orbion_v2,public"
+    }
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
