@@ -147,13 +147,51 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   /* ===== 6. FORMULÁRIO DE CONTATO ===== */
-  const contactForm = document.getElementById('contact-form');
-  if (contactForm) {
-    contactForm.addEventListener('submit', function (e) {
-      e.preventDefault();
+ 
+const contactForm = document.getElementById('contact-form');
+
+if (contactForm) {
+  contactForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const botao = contactForm.querySelector('button[type="submit"]');
+    botao.disabled = true;
+    botao.textContent = 'Enviando...';
+
+    const dados = {
+      nome: contactForm.querySelector('[name="nome"]').value.trim(),
+      email: contactForm.querySelector('[name="email"]').value.trim(),
+      assunto: contactForm.querySelector('[name="assunto"]').value.trim(),
+      mensagem: contactForm.querySelector('[name="mensagem"]').value.trim()
+    };
+
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/api/contato', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dados)
+      });
+
+      const resultado = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(resultado.detail || 'Erro ao enviar mensagem.');
+      }
+
       alert('Mensagem enviada com sucesso! Obrigado pelo contato.');
       contactForm.reset();
-    });
-  }
+
+    } catch (erro) {
+      console.error('Erro:', erro);
+      alert('Não foi possível enviar sua mensagem. Tente novamente.');
+
+    } finally {
+      botao.disabled = false;
+      botao.textContent = 'Enviar mensagem';
+    }
+  });
+}
 
 });
