@@ -1042,3 +1042,108 @@ body.dark-mode .privacy-container a {
       font-size: 18px;
   }
 }
+
+
+/* ===== CADASTRO DE VOLUNTÁRIO ===== */
+
+.register-form {
+  max-width: 850px;
+  margin: 2rem auto 4rem;
+  padding: 2.5rem;
+  background-color: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.register-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(105, 150, 88, 0.25);
+}
+
+.register-section h2 {
+  color: var(--verde-escuro);
+  font-size: 1.4rem;
+  margin-bottom: 1.2rem;
+}
+
+body.dark .register-section h2 {
+  color: var(--verde-claro);
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1.5rem;
+}
+
+.register-form .form-group select {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid rgba(105, 150, 88, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: var(--fundo);
+  color: var(--texto);
+  font-family: inherit;
+}
+
+.register-form .form-group input:focus,
+.register-form .form-group select:focus {
+  outline: none;
+  border-color: var(--verde-claro);
+}
+
+.register-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.register-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 1rem;
+  background-color: var(--fundo);
+  border: 1px solid rgba(105, 150, 88, 0.3);
+  border-radius: 8px;
+  color: var(--texto);
+}
+
+.register-option input {
+  margin-top: 0.3rem;
+  accent-color: var(--verde-medio);
+}
+
+.register-option label {
+  cursor: pointer;
+}
+
+.register-hint {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.register-submit {
+  width: 100%;
+  border: none;
+}
+
+.register-message {
+  margin-top: 1rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .register-form {
+    margin: 1.5rem 1rem 3rem;
+    padding: 1.5rem;
+  }
+
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+}

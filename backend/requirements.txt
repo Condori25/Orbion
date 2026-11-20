@@ -5,3 +5,5 @@ sqlalchemy
 psycopg[binary]
 python-dotenv
 email-validator
+pwdlib[argon2]
+PyJWT

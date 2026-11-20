@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Perfil - Orbion</title>
+  <meta name="description" content="Consulte e atualize seu perfil de voluntário na Orbion.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="index.html" class="logo">Orbion</a>
+      <button id="menu-button" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="sidebar-overlay"></div>
+
+  <aside id="sidebar">
+    <button id="close-button" aria-label="Fechar menu">&times;</button>
+    <nav>
+      <a href="index.html">Início</a>
+      <a href="projetos.html">Projetos</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="contato.html">Contato</a>
+      <a href="perfil.html">Meu Perfil</a>
+    </nav>
+  </aside>
+
+  <div id="search-modal">
+    <button id="search-close" aria-label="Fechar pesquisa">&times;</button>
+    <input type="text" id="search-input" placeholder="Pesquisar...">
+    <div id="search-results"></div>
+  </div>
+
+  <main>
+    <section class="page-header">
+      <h1>Meu Perfil</h1>
+      <p>Acompanhe suas informações como voluntário da Orbion.</p>
+      <button type="button" id="logout-button" class="btn btn-primary">
+        Sair da conta
+      </button>
+    </section>
+
+    <section class="register-form">
+
+      <div id="profile-loading" class="register-message">
+        Carregando seu perfil...
+      </div>
+
+      <div id="profile-message" class="register-message" role="status"></div>
+
+      <form id="profile-form">
+
+        <section class="register-section">
+          <h2>Dados pessoais</h2>
+
+          <div class="register-grid">
+            <div class="form-group">
+              <label for="perfil-nome">Nome completo</label>
+              <input type="text" id="perfil-nome" maxlength="100" required>
+            </div>
+
+            <div class="form-group">
+              <label for="perfil-email">E-mail</label>
+              <input type="email" id="perfil-email" readonly>
+            </div>
+
+            <div class="form-group">
+              <label for="perfil-telefone">Telefone</label>
+              <input type="tel" id="perfil-telefone" maxlength="20">
+            </div>
+
+            <div class="form-group">
+              <label for="perfil-nascimento">Data de nascimento</label>
+              <input type="text" id="perfil-nascimento" readonly>
+            </div>
+          </div>
+        </section>
+
+        <section class="register-section">
+          <h2>Áreas de interesse</h2>
+          <p class="register-hint">Selecione suas áreas de interesse.</p>
+          <div id="perfil-areas" class="register-options"></div>
+        </section>
+
+        <section class="register-section">
+          <h2>Minhas competências</h2>
+          <p class="register-hint">Selecione suas competências e informe o nível.</p>
+          <div id="perfil-competencias"></div>
+        </section>
+
+        <button type="submit" class="btn btn-primary register-submit">
+          Salvar alterações
+        </button>
+
+      </form>
+
+      <section class="register-section">
+        <h2>Minhas inscrições em projetos</h2>
+        <div id="perfil-inscricoes">
+          <p>A consulta das inscrições será disponibilizada em breve.</p>
+        </div>
+      </section>
+
+    </section>
+  </main>
+
+  <footer id="footer"></footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
