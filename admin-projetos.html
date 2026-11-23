@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Projetos - Orbion</title>
+    <meta name="description" content="Painel administrativo de gerenciamento de projetos da Orbion.">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <main class="admin-container">
+
+        <a href="projetos.html">← Voltar aos projetos</a>
+
+        <h1>Gerenciar Projetos</h1>
+        <p>Cadastre, edite e acompanhe os projetos da Orbion.</p>
+
+        <section id="admin-projetos">
+
+            <div class="admin-form-container">
+
+                <h2 id="form-titulo">Cadastrar novo projeto</h2>
+
+                <form id="form-projeto">
+
+                    <input type="hidden" id="id_projeto">
+
+                    <label for="titulo">Título do projeto</label>
+                    <input type="text" id="titulo" required>
+
+                    <label for="descricao">Descrição</label>
+                    <textarea id="descricao" required></textarea>
+
+                    <label for="data_inicio">Data de início</label>
+                    <input type="date" id="data_inicio" required>
+
+                    <label for="data_fim">Data de término</label>
+                    <input type="date" id="data_fim">
+
+                    <label for="status">Status</label>
+                    <select id="status" required>
+                        <option value="Planejado">Planejado</option>
+                        <option value="Em andamento">Em andamento</option>
+                        <option value="Concluído">Concluído</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+
+                    <label for="imagem_url">URL da imagem</label>
+                    <input type="url" id="imagem_url">
+
+                    <label for="objetivos">Objetivos</label>
+                    <textarea id="objetivos"></textarea>
+
+                    <label for="publico_alvo">Público-alvo</label>
+                    <textarea id="publico_alvo"></textarea>
+
+                    <label for="metodologia">Metodologia</label>
+                    <textarea id="metodologia"></textarea>
+
+                    <label for="resultados_esperados">Resultados esperados</label>
+                    <textarea id="resultados_esperados"></textarea>
+
+                    <button type="submit" id="btn-salvar">
+                        Salvar projeto
+                    </button>
+
+                    <button type="button" id="btn-cancelar" hidden>
+                        Cancelar edição
+                    </button>
+
+                </form>
+
+            </div>
+
+            <div class="admin-lista-container">
+                <h2>Projetos cadastrados</h2>
+                <div id="lista-projetos"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="js/admin-projetos.js"></script>
+</body>
+</html>

@@ -35,6 +35,62 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 60
 bearer_scheme = HTTPBearer(auto_error=False)
 
+def verificar_administrador(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    if not JWT_SECRET_KEY:
+        raise HTTPException(
+            500,
+            "Configuração de autenticação indisponível."
+        )
+
+    if not credentials:
+        raise HTTPException(
+            401,
+            "Autenticação necessária."
+        )
+
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM]
+        )
+
+        id_usuario = int(payload["sub"])
+
+        administrador = db.execute(
+            text("""
+                SELECT u.id_usuario
+                FROM orbion_v2.usuarios u
+                INNER JOIN orbion_v2.usuarios_perfis up
+                    ON up.id_usuario = u.id_usuario
+                WHERE u.id_usuario = :id_usuario
+                  AND u.ativo = TRUE
+                  AND up.id_perfil = 1
+            """),
+            {"id_usuario": id_usuario}
+        ).mappings().first()
+
+        if not administrador:
+            raise HTTPException(
+                403,
+                "Acesso permitido somente para administradores."
+            )
+
+        return administrador
+
+    except HTTPException:
+        raise
+
+    except (jwt.PyJWTError, KeyError, TypeError, ValueError):
+        raise HTTPException(
+            401,
+            "Token inválido ou expirado."
+        )
+
+
 
 class CompetenciaCadastro(BaseModel):
     id_competencia: int
@@ -60,6 +116,20 @@ class AtualizacaoPerfil(BaseModel):
     telefone: str | None = Field(default=None, max_length=20)
     areas_interesse: list[int] = Field(default_factory=list)
     competencias: list[CompetenciaCadastro] = Field(default_factory=list)
+
+
+class ProjetoDados(BaseModel):
+    titulo: str = Field(min_length=1)
+    descricao: str = Field(min_length=1)
+    data_inicio: date
+    data_fim: date | None = None
+    status: str = "Planejado"
+    imagem_url: str | None = None
+    objetivos: str | None = None
+    publico_alvo: str | None = None
+    metodologia: str | None = None
+    resultados_esperados: str | None = None
+
 
 
 app = FastAPI(
@@ -133,6 +203,167 @@ def listar_projetos(db: Session = Depends(get_db)):
             status_code=500,
             detail="Erro ao consultar os projetos."
         )
+    
+
+@app.post("/api/projetos")
+def cadastrar_projeto(
+    dados: ProjetoDados,
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    try:
+        resultado = db.execute(
+            text("""
+                INSERT INTO orbion_v2.projetos (
+                    titulo,
+                    descricao,
+                    data_inicio,
+                    data_fim,
+                    status,
+                    imagem_url,
+                    objetivos,
+                    publico_alvo,
+                    metodologia,
+                    resultados_esperados
+                )
+                VALUES (
+                    :titulo,
+                    :descricao,
+                    :data_inicio,
+                    :data_fim,
+                    :status,
+                    :imagem_url,
+                    :objetivos,
+                    :publico_alvo,
+                    :metodologia,
+                    :resultados_esperados
+                )
+                RETURNING id_projeto
+            """),
+            dados.model_dump()
+        )
+
+        id_projeto = resultado.scalar_one()
+        db.commit()
+
+        return {
+            "mensagem": "Projeto cadastrado com sucesso!",
+            "id_projeto": id_projeto
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            500,
+            "Erro interno ao cadastrar projeto."
+        )
+
+
+@app.put("/api/projetos/{id_projeto}")
+def atualizar_projeto(
+    id_projeto: int,
+    dados: ProjetoDados,
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    try:
+        resultado = db.execute(
+            text("""
+                UPDATE orbion_v2.projetos
+                SET
+                    titulo = :titulo,
+                    descricao = :descricao,
+                    data_inicio = :data_inicio,
+                    data_fim = :data_fim,
+                    status = :status,
+                    imagem_url = :imagem_url,
+                    objetivos = :objetivos,
+                    publico_alvo = :publico_alvo,
+                    metodologia = :metodologia,
+                    resultados_esperados = :resultados_esperados
+                WHERE id_projeto = :id_projeto
+                RETURNING id_projeto
+            """),
+            {
+                **dados.model_dump(),
+                "id_projeto": id_projeto
+            }
+        )
+
+        projeto = resultado.scalar_one_or_none()
+
+        if projeto is None:
+            raise HTTPException(
+                404,
+                "Projeto não encontrado."
+            )
+
+        db.commit()
+
+        return {
+            "mensagem": "Projeto atualizado com sucesso!",
+            "id_projeto": projeto
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            500,
+            "Erro interno ao atualizar projeto."
+        )
+
+
+@app.delete("/api/projetos/{id_projeto}")
+def excluir_projeto(
+    id_projeto: int,
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    try:
+        resultado = db.execute(
+            text("""
+                DELETE FROM orbion_v2.projetos
+                WHERE id_projeto = :id_projeto
+                RETURNING id_projeto
+            """),
+            {"id_projeto": id_projeto}
+        )
+
+        projeto = resultado.scalar_one_or_none()
+
+        if projeto is None:
+            raise HTTPException(
+                404,
+                "Projeto não encontrado."
+            )
+
+        db.commit()
+
+        return {
+            "mensagem": "Projeto excluído com sucesso!",
+            "id_projeto": projeto
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            500,
+            "Erro interno ao excluir projeto."
+        )
+
+
 
 @app.get("/api/areas-interesse")
 def listar_areas_interesse(db: Session = Depends(get_db)):
@@ -439,6 +670,7 @@ def cadastrar_voluntario(
     
 
 
+
 @app.post("/api/login")
 def login_voluntario(
     dados: LoginVoluntario,
@@ -459,9 +691,15 @@ def login_voluntario(
                     u.id_usuario,
                     u.senha_hash,
                     u.ativo,
-                    v.id_voluntario
+                    v.id_voluntario,
+                    EXISTS (
+                        SELECT 1
+                        FROM orbion_v2.usuarios_perfis up
+                        WHERE up.id_usuario = u.id_usuario
+                          AND up.id_perfil = 1
+                    ) AS is_admin
                 FROM orbion_v2.usuarios u
-                INNER JOIN orbion_v2.voluntarios v
+                LEFT JOIN orbion_v2.voluntarios v
                     ON v.id_usuario = u.id_usuario
                 WHERE LOWER(u.email) = :email
             """),
@@ -490,6 +728,7 @@ def login_voluntario(
         payload = {
             "sub": str(usuario["id_usuario"]),
             "id_voluntario": usuario["id_voluntario"],
+            "is_admin": usuario["is_admin"],
             "exp": expiracao
         }
 
@@ -504,7 +743,8 @@ def login_voluntario(
             "access_token": token,
             "token_type": "bearer",
             "expires_in": JWT_EXPIRATION_MINUTES * 60,
-            "id_voluntario": usuario["id_voluntario"]
+            "id_voluntario": usuario["id_voluntario"],
+            "is_admin": usuario["is_admin"]
         }
 
     except HTTPException:
@@ -613,6 +853,72 @@ def consultar_perfil(
             500,
             "Erro ao consultar o perfil do voluntário."
         )
+    
+
+@app.get("/api/perfil/inscricoes")
+def consultar_inscricoes(
+    credenciais: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    if not JWT_SECRET_KEY:
+        raise HTTPException(500, "Configuração de autenticação indisponível.")
+
+    if credenciais is None:
+        raise HTTPException(
+            401,
+            "Autenticação necessária.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        payload = jwt.decode(
+            credenciais.credentials,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM]
+        )
+        id_usuario = int(payload["sub"])
+
+    except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
+        raise HTTPException(
+            401,
+            "Token inválido ou expirado.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        resultado = db.execute(
+            text("""
+                SELECT
+                    p.id_projeto,
+                    p.titulo,
+                    p.descricao,
+                    p.data_inicio,
+                    p.data_fim,
+                    p.imagem_url,
+                    vp.data_inscricao,
+                    vp.status AS status_inscricao
+                FROM orbion_v2.voluntarios_projetos vp
+                INNER JOIN orbion_v2.voluntarios v
+                    ON v.id_voluntario = vp.id_voluntario
+                INNER JOIN orbion_v2.usuarios u
+                    ON u.id_usuario = v.id_usuario
+                INNER JOIN orbion_v2.projetos p
+                    ON p.id_projeto = vp.id_projeto
+                WHERE u.id_usuario = :id_usuario
+                  AND u.ativo = TRUE
+                ORDER BY vp.data_inscricao DESC
+            """),
+            {"id_usuario": id_usuario}
+        ).mappings().all()
+
+        return [dict(inscricao) for inscricao in resultado]
+
+    except Exception:
+        raise HTTPException(
+            500,
+            "Erro ao consultar as inscrições do voluntário."
+        )
+
 
 
 @app.put("/api/perfil")

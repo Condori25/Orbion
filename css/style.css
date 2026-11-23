@@ -12,8 +12,8 @@
 
 /* ===== MODO ESCURO ===== */
 body.dark {
-  --fundo: #1a1a1a;
-  --card-bg: #252525;
+  --fundo: #000000;
+  --card-bg: #111111;
   --texto: #e6e0e0;
   --texto-suave: #a0a0a0;
   --preto: #ffffff;
@@ -1145,5 +1145,259 @@ body.dark .register-section h2 {
 
   .register-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* ===== AJUSTES DA PÁGINA MEU PERFIL ===== */
+
+/* Botão sair da conta */
+.sidebar-links .logout-button,
+.logout-button {
+  display: inline-block;
+  width: auto;
+  padding: 0.55rem 1.2rem;
+  margin: 1.2rem 1.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* Confirmação de perfil atualizado */
+
+/* ===== CONFIRMAÇÃO DE PERFIL ATUALIZADO ===== */
+
+.profile-success {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: success-fade-in 0.3s ease forwards;
+}
+
+.profile-success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  color: #225318;
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: success-pop 0.35s ease;
+}
+
+.success-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #269b50;
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.profile-success.fade-out {
+  animation: success-fade-out 0.4s ease forwards;
+}
+
+@keyframes success-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes success-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes success-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.profile-success .success-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: #269b50;
+  color: white;
+  font-size: 15px;
+}
+
+@keyframes profile-check {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== BOTÃO SAIR DA CONTA ===== */
+
+.sidebar-links li:last-child {
+  margin-top: 1.2rem;
+  border-bottom: none;
+}
+
+.sidebar-links li:last-child a.logout-button {
+  display: inline-flex;
+  width: auto;
+  margin: 0 1.5rem 1rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  border: 1px solid var(--verde-claro);
+  border-radius: 8px;
+}
+
+.sidebar-links li:last-child a.logout-button:hover {
+  padding-left: 1rem;
+}
+
+/* ===== BOTÃO SAIR DA CONTA - MEU PERFIL ===== */
+.page-header #logout-button {
+  display: inline-block;
+  width: auto;
+  margin-top: 25px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+
+/* ===== PAINEL ADMINISTRATIVO ===== */
+
+.admin-container {
+  width: min(1100px, 92%);
+  margin: 120px auto 60px;
+  color: #222;
+}
+
+.admin-container > h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.admin-container > p {
+  margin-bottom: 35px;
+  color: #666;
+}
+
+.admin-form-container,
+.admin-lista-container {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.admin-form-container h2,
+.admin-lista-container h2 {
+  margin-bottom: 25px;
+}
+
+#form-projeto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#form-projeto label {
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+#form-projeto input,
+#form-projeto textarea,
+#form-projeto select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  font: inherit;
+}
+
+#form-projeto textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+#form-projeto button,
+.admin-projeto-card button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#btn-salvar {
+  background: #1677b8;
+  color: #fff;
+}
+
+#btn-cancelar {
+  background: #e5e5e5;
+  color: #222;
+}
+
+.admin-projeto-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.admin-projeto-card h3 {
+  margin-bottom: 10px;
+}
+
+.admin-projeto-card p {
+  margin-bottom: 12px;
+  color: #555;
+}
+
+.admin-projeto-card button {
+  margin-right: 8px;
+  margin-top: 8px;
+  background: #1677b8;
+  color: #fff;
+}
+
+.admin-projeto-card button:last-child {
+  background: #c0392b;
+}
+
+@media (max-width: 600px) {
+  .admin-container {
+      margin-top: 90px;
+  }
+
+  .admin-form-container,
+  .admin-lista-container {
+      padding: 18px;
   }
 }

@@ -2,12 +2,8 @@
 document.addEventListener('DOMContentLoaded', function () {
 
   /* ===== 0. CONFIGURAÇÃO DA API ===== */
-  const API_BASE_URL = (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  )
-    ? "http://127.0.0.1:8000"
-    : "https://orbion-api.onrender.com";
+  
+  const API_BASE_URL = "https://orbion-api.onrender.com";
 
 
   /* ===== 1. TELA DE CARREGAMENTO ===== */
@@ -21,10 +17,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   /* ===== 2. MENU LATERAL ===== */
+  
+  /* ===== 2. MENU LATERAL E NAVEGAÇÃO DINÂMICA ===== */
   const menuButton = document.getElementById('menu-button');
   const closeButton = document.getElementById('close-button');
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
+
+  // Não exibir menu lateral na página Meu Perfil
+  
 
   function openMenu() {
     if (sidebar) sidebar.classList.add('open');
@@ -39,6 +40,106 @@ document.addEventListener('DOMContentLoaded', function () {
   if (menuButton) menuButton.addEventListener('click', openMenu);
   if (closeButton) closeButton.addEventListener('click', closeMenu);
   if (overlay) overlay.addEventListener('click', closeMenu);
+
+  // Verificar se existe uma sessão de usuário
+  const token = sessionStorage.getItem('orbion-token');
+
+const usuarioLogado = Boolean(token);
+
+let usuarioAdmin = false;
+
+if (token) {
+    try {
+        const payload = JSON.parse(
+            atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
+        );
+
+        usuarioAdmin = payload.is_admin === true;
+
+    } catch (erro) {
+        usuarioAdmin = false;
+    }
+}
+
+  // Localizar o menu independentemente do formato do HTML
+  const menuLinks = sidebar
+    ? sidebar.querySelector('nav')
+    : null;
+
+  const listaLinks = sidebar
+    ? sidebar.querySelector('.sidebar-links')
+    : null;
+
+  const menuDestino = listaLinks || menuLinks;
+
+  if (menuDestino) {
+    const links = [
+      { texto: 'Início', url: 'index.html' },
+      { texto: 'Projetos', url: 'projetos.html' },
+      { texto: 'Sobre', url: 'sobre.html' },
+      { texto: 'Contato', url: 'contato.html' }
+    ];
+
+    if (usuarioLogado) {
+      links.push({
+          texto: 'Meu Perfil',
+          url: 'perfil.html'
+      });
+  
+      if (usuarioAdmin) {
+          links.push({
+              texto: 'Painel Administrativo',
+              url: 'admin-projetos.html'
+          });
+      }
+  } else {
+      links.push(
+        { texto: 'Entrar', url: 'login.html' },
+        { texto: 'Seja Voluntário', url: 'cadastro.html' }
+      );
+    }
+
+    menuDestino.replaceChildren();
+
+    links.forEach(function (item) {
+      const link = document.createElement('a');
+      link.href = item.url;
+      link.textContent = item.texto;
+
+      if (listaLinks) {
+        const li = document.createElement('li');
+        li.appendChild(link);
+        menuDestino.appendChild(li);
+      } else {
+        menuDestino.appendChild(link);
+      }
+    });
+
+    // Opção de sair para quem está conectado
+    if (usuarioLogado) {
+      const sair = document.createElement('a');
+      sair.className = 'logout-button';
+      sair.href = '#';
+      sair.textContent = 'Sair da conta';
+
+      sair.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        sessionStorage.removeItem('orbion-token');
+        sessionStorage.removeItem('orbion-id-voluntario');
+
+        window.location.href = 'login.html';
+      });
+
+      if (listaLinks) {
+        const li = document.createElement('li');
+        li.appendChild(sair);
+        menuDestino.appendChild(li);
+      } else {
+        menuDestino.appendChild(sair);
+      }
+    }
+  }
 
 
   /* ===== 3. DARK MODE ===== */
@@ -189,59 +290,84 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
 
-  /* ===== 6. FORMULÁRIO DE CONTATO ===== */
-  const contactForm = document.getElementById('contact-form');
+ 
+/* ===== 6. FORMULÁRIO DE CONTATO ===== */
+const contactForm = document.getElementById('contact-form');
 
-  if (contactForm) {
-    contactForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
+if (contactForm) {
+  // Cria a área de mensagens
+  let contactMessage = document.getElementById('contact-message');
 
-      const botao = contactForm.querySelector('button[type="submit"]');
-
-      if (!botao) return;
-
-      botao.disabled = true;
-      botao.textContent = 'Enviando...';
-
-      const dados = {
-        nome: contactForm.querySelector('[name="nome"]').value.trim(),
-        email: contactForm.querySelector('[name="email"]').value.trim(),
-        assunto: contactForm.querySelector('[name="assunto"]').value.trim(),
-        mensagem: contactForm.querySelector('[name="mensagem"]').value.trim()
-      };
-
-      try {
-        const resposta = await fetch(`${API_BASE_URL}/api/contato`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(dados)
-        });
-
-        const resultado = await resposta.json();
-
-        if (!resposta.ok) {
-          throw new Error(
-            typeof resultado.detail === 'string'
-              ? resultado.detail
-              : 'Erro ao enviar mensagem.'
-          );
-        }
-
-        alert('Mensagem enviada com sucesso! Obrigado pelo contato.');
-        contactForm.reset();
-
-      } catch (erro) {
-        console.error('Erro:', erro);
-        alert('Não foi possível enviar sua mensagem. Tente novamente.');
-
-      } finally {
-        botao.disabled = false;
-        botao.textContent = 'Enviar mensagem';
-      }
-    });
+  if (!contactMessage) {
+    contactMessage = document.createElement('p');
+    contactMessage.id = 'contact-message';
+    contactMessage.setAttribute('role', 'status');
+    contactMessage.setAttribute('aria-live', 'polite');
+    contactMessage.style.marginTop = '15px';
+    contactForm.prepend(contactMessage);
   }
+
+  contactForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const botao = contactForm.querySelector('button[type="submit"]');
+
+    if (!botao) return;
+
+    botao.disabled = true;
+    botao.textContent = 'Enviando...';
+
+    contactMessage.textContent = '';
+    contactMessage.style.color = '';
+
+    const dados = {
+      nome: contactForm.querySelector('[name="nome"]').value.trim(),
+      email: contactForm.querySelector('[name="email"]').value.trim(),
+      assunto: contactForm.querySelector('[name="assunto"]').value.trim(),
+      mensagem: contactForm.querySelector('[name="mensagem"]').value.trim()
+    };
+
+    try {
+      const resposta = await fetch(`${API_BASE_URL}/api/contato`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dados)
+      });
+
+      const resultado = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(
+          typeof resultado.detail === 'string'
+            ? resultado.detail
+            : 'Erro ao enviar mensagem.'
+        );
+      }
+
+      contactMessage.textContent =
+        'Mensagem enviada com sucesso! Obrigado pelo contato.';
+
+      contactMessage.style.color = '#699658';
+
+      contactForm.reset();
+
+    } catch (erro) {
+      console.error('Erro:', erro);
+
+      contactMessage.textContent =
+        'Não foi possível enviar sua mensagem. Tente novamente.';
+
+      contactMessage.style.color = '#d9534f';
+
+    } finally {
+      botao.disabled = false;
+      botao.textContent = 'Enviar mensagem';
+    }
+  });
+}
+
 
 
   /* ===== 7. CADASTRO DE VOLUNTÁRIO ===== */
@@ -568,10 +694,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         cadastroMessage.textContent =
-          'Cadastro realizado com sucesso! Bem-vindo à Orbion.';
-        cadastroMessage.style.color = '#699658';
+  'Cadastro realizado com sucesso! Redirecionando para o login...';
+cadastroMessage.style.color = '#699658';
 
-        cadastroForm.reset();
+cadastroForm.reset();
+
+setTimeout(() => {
+  window.location.href = 'login.html';
+}, 2000);
 
       } catch (erro) {
         cadastroMessage.textContent = erro.message;
@@ -646,6 +776,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
 
+  
   /* ===== 9. PERFIL DO VOLUNTÁRIO ===== */
   const perfilLoading = document.getElementById('profile-loading');
 
@@ -655,157 +786,233 @@ document.addEventListener('DOMContentLoaded', function () {
     const perfilForm = document.getElementById('profile-form');
     const areasContainer = document.getElementById('perfil-areas');
     const competenciasContainer = document.getElementById('perfil-competencias');
+    const inscricoesContainer = document.getElementById('perfil-inscricoes');
 
-    async function carregarPerfil() {
-      if (!token) {
-        window.location.href = 'login.html';
-        return;
-      }
+    
+async function carregarPerfil() {
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
 
+  try {
+    // 1. Carregar os dados principais do perfil
+    const [
+      respostaPerfil,
+      respostaAreas,
+      respostaCompetencias
+    ] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/perfil`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }),
+      fetch(`${API_BASE_URL}/api/areas-interesse`),
+      fetch(`${API_BASE_URL}/api/competencias`)
+    ]);
+
+    const resultado = await respostaPerfil.json();
+
+    if (respostaPerfil.status === 401) {
+      sessionStorage.removeItem('orbion-token');
+      sessionStorage.removeItem('orbion-id-voluntario');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (!respostaPerfil.ok) {
+      throw new Error(
+        typeof resultado.detail === 'string'
+          ? resultado.detail
+          : 'Não foi possível carregar o perfil.'
+      );
+    }
+
+    if (!respostaAreas.ok || !respostaCompetencias.ok) {
+      throw new Error('Não foi possível carregar as opções do perfil.');
+    }
+
+    const areas = await respostaAreas.json();
+    const competencias = await respostaCompetencias.json();
+    const voluntario = resultado.voluntario;
+
+    // 2. Dados pessoais
+    document.getElementById('perfil-nome').value = voluntario.nome;
+    document.getElementById('perfil-email').value = voluntario.email;
+    document.getElementById('perfil-telefone').value =
+      voluntario.telefone || '';
+
+    document.getElementById('perfil-nascimento').value =
+      new Date(voluntario.data_nascimento + 'T00:00:00')
+        .toLocaleDateString('pt-BR');
+
+    // 3. Áreas de interesse
+    areasContainer.replaceChildren();
+
+    const areasSelecionadas = new Set(
+      resultado.areas_interesse.map(area => Number(area.id_area))
+    );
+
+    areas.forEach(area => {
+      const item = document.createElement('label');
+      item.className = 'register-option';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'areas_interesse';
+      checkbox.value = area.id_area;
+      checkbox.checked = areasSelecionadas.has(Number(area.id_area));
+
+      const nome = document.createElement('span');
+      nome.textContent = area.nome;
+
+      item.append(checkbox, nome);
+      areasContainer.appendChild(item);
+    });
+
+    if (areas.length === 0) {
+      areasContainer.textContent = 'Nenhuma área cadastrada.';
+    }
+
+    // 4. Competências
+    competenciasContainer.replaceChildren();
+
+    const competenciasAtuais = new Map(
+      resultado.competencias.map(competencia => [
+        Number(competencia.id_competencia),
+        competencia.nivel
+      ])
+    );
+
+    competencias.forEach(competencia => {
+      const grupo = document.createElement('div');
+      grupo.className = 'form-group';
+
+      const identificador = competencia.id_competencia;
+      const nivelAtual = competenciasAtuais.get(Number(identificador));
+
+      const label = document.createElement('label');
+      label.className = 'register-option';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'competencias';
+      checkbox.value = identificador;
+      checkbox.checked = Boolean(nivelAtual);
+
+      const nome = document.createElement('span');
+      nome.textContent = competencia.nome;
+
+      label.append(checkbox, nome);
+
+      const select = document.createElement('select');
+      select.dataset.competenciaId = identificador;
+      select.disabled = !checkbox.checked;
+
+      [
+        ['Basico', 'Básico'],
+        ['Intermediario', 'Intermediário'],
+        ['Avancado', 'Avançado']
+      ].forEach(([valor, texto]) => {
+        const opcao = document.createElement('option');
+        opcao.value = valor;
+        opcao.textContent = texto;
+        opcao.selected = valor === nivelAtual;
+        select.appendChild(opcao);
+      });
+
+      checkbox.addEventListener('change', function () {
+        select.disabled = !checkbox.checked;
+      });
+
+      grupo.append(label, select);
+      competenciasContainer.appendChild(grupo);
+    });
+
+    if (competencias.length === 0) {
+      competenciasContainer.textContent =
+        'Nenhuma competência cadastrada.';
+    }
+
+    // 5. Carregar inscrições separadamente
+    if (inscricoesContainer) {
       try {
-        const [respostaPerfil, respostaAreas, respostaCompetencias] =
-          await Promise.all([
-            fetch(`${API_BASE_URL}/api/perfil`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }),
-            fetch(`${API_BASE_URL}/api/areas-interesse`),
-            fetch(`${API_BASE_URL}/api/competencias`)
-          ]);
+        const respostaInscricoes = await fetch(
+          `${API_BASE_URL}/api/perfil/inscricoes`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
 
-        const resultado = await respostaPerfil.json();
-
-        if (respostaPerfil.status === 401) {
+        if (respostaInscricoes.status === 401) {
           sessionStorage.removeItem('orbion-token');
           sessionStorage.removeItem('orbion-id-voluntario');
           window.location.href = 'login.html';
           return;
         }
 
-        if (!respostaPerfil.ok) {
-          throw new Error(
-            typeof resultado.detail === 'string'
-              ? resultado.detail
-              : 'Não foi possível carregar o perfil.'
-          );
+        if (!respostaInscricoes.ok) {
+          throw new Error('Erro ao consultar inscrições.');
         }
 
-        if (!respostaAreas.ok || !respostaCompetencias.ok) {
-          throw new Error('Não foi possível carregar as opções do perfil.');
-        }
+        const inscricoes = await respostaInscricoes.json();
 
-        const areas = await respostaAreas.json();
-        const competencias = await respostaCompetencias.json();
-        const voluntario = resultado.voluntario;
+        inscricoesContainer.replaceChildren();
 
-        // Dados pessoais
-        document.getElementById('perfil-nome').value = voluntario.nome;
-        document.getElementById('perfil-email').value = voluntario.email;
-        document.getElementById('perfil-telefone').value =
-          voluntario.telefone || '';
+        if (inscricoes.length === 0) {
+          const mensagem = document.createElement('p');
+          mensagem.textContent =
+            'Você ainda não possui inscrições em projetos.';
 
-        document.getElementById('perfil-nascimento').value =
-          new Date(voluntario.data_nascimento + 'T00:00:00')
-            .toLocaleDateString('pt-BR');
+          inscricoesContainer.appendChild(mensagem);
 
-        // Áreas de interesse
-        areasContainer.replaceChildren();
+        } else {
+          inscricoes.forEach(inscricao => {
+            const card = document.createElement('div');
+            card.className = 'form-group';
 
-        const areasSelecionadas = new Set(
-          resultado.areas_interesse.map(area => Number(area.id_area))
-        );
+            const titulo = document.createElement('h3');
+            titulo.textContent = inscricao.titulo;
 
-        areas.forEach(area => {
-          const item = document.createElement('label');
-          item.className = 'register-option';
+            const descricao = document.createElement('p');
+            descricao.textContent = inscricao.descricao || '';
 
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.name = 'areas_interesse';
-          checkbox.value = area.id_area;
-          checkbox.checked = areasSelecionadas.has(Number(area.id_area));
+            const status = document.createElement('p');
+            status.textContent =
+              `Status: ${inscricao.status_inscricao}`;
 
-          const nome = document.createElement('span');
-          nome.textContent = area.nome;
+            const data = document.createElement('p');
+            data.textContent =
+              `Inscrição realizada em: ${
+                new Date(inscricao.data_inscricao)
+                  .toLocaleDateString('pt-BR')
+              }`;
 
-          item.append(checkbox, nome);
-          areasContainer.appendChild(item);
-        });
-
-        if (areas.length === 0) {
-          areasContainer.textContent = 'Nenhuma área cadastrada.';
-        }
-
-        // Competências
-        competenciasContainer.replaceChildren();
-
-        const competenciasAtuais = new Map(
-          resultado.competencias.map(competencia => [
-            Number(competencia.id_competencia),
-            competencia.nivel
-          ])
-        );
-
-        competencias.forEach(competencia => {
-          const grupo = document.createElement('div');
-          grupo.className = 'form-group';
-
-          const identificador = competencia.id_competencia;
-          const nivelAtual = competenciasAtuais.get(Number(identificador));
-
-          const label = document.createElement('label');
-          label.className = 'register-option';
-
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.name = 'competencias';
-          checkbox.value = identificador;
-          checkbox.checked = Boolean(nivelAtual);
-
-          const nome = document.createElement('span');
-          nome.textContent = competencia.nome;
-
-          label.append(checkbox, nome);
-
-          const select = document.createElement('select');
-          select.dataset.competenciaId = identificador;
-          select.disabled = !checkbox.checked;
-
-          [
-            ['Basico', 'Básico'],
-            ['Intermediario', 'Intermediário'],
-            ['Avancado', 'Avançado']
-          ].forEach(([valor, texto]) => {
-            const opcao = document.createElement('option');
-            opcao.value = valor;
-            opcao.textContent = texto;
-            opcao.selected = valor === nivelAtual;
-            select.appendChild(opcao);
+            card.append(titulo, descricao, status, data);
+            inscricoesContainer.appendChild(card);
           });
-
-          checkbox.addEventListener('change', function () {
-            select.disabled = !checkbox.checked;
-          });
-
-          grupo.append(label, select);
-          competenciasContainer.appendChild(grupo);
-        });
-
-        if (competencias.length === 0) {
-          competenciasContainer.textContent =
-            'Nenhuma competência cadastrada.';
         }
 
-      } catch (erro) {
-        perfilMessage.textContent = erro.message;
-        perfilMessage.style.color = '#d93025';
-        console.error('Erro ao carregar perfil:', erro);
+      } catch (erroInscricoes) {
+        inscricoesContainer.textContent =
+          'Não foi possível carregar suas inscrições.';
 
-      } finally {
-        perfilLoading.style.display = 'none';
+        console.error('Erro nas inscrições:', erroInscricoes);
       }
     }
+
+  } catch (erro) {
+    perfilMessage.textContent = erro.message;
+    perfilMessage.style.color = '#d93025';
+    console.error('Erro ao carregar perfil:', erro);
+
+  } finally {
+    perfilLoading.style.display = 'none';
+  }
+}
+
 
     // Salvar alterações do perfil
     if (perfilForm) {
@@ -881,6 +1088,36 @@ document.addEventListener('DOMContentLoaded', function () {
 
           perfilMessage.textContent = 'Perfil atualizado com sucesso!';
           perfilMessage.style.color = '#699658';
+          perfilMessage.className = 'profile-success';
+          perfilMessage.replaceChildren();
+          
+          const conteudo = document.createElement('div');
+          conteudo.className = 'profile-success-content';
+          
+          const check = document.createElement('span');
+          check.className = 'success-check';
+          check.textContent = '✓';
+          
+          const mensagem = document.createElement('strong');
+          mensagem.textContent = 'Perfil atualizado!';
+          
+          const descricao = document.createElement('span');
+          descricao.textContent = 'Suas alterações foram salvas com sucesso.';
+          
+          conteudo.append(check, mensagem, descricao);
+          perfilMessage.appendChild(conteudo);
+          
+          // Desaparecer suavemente após 2 segundos
+          setTimeout(() => {
+            perfilMessage.classList.add('fade-out');
+          
+            setTimeout(() => {
+              perfilMessage.replaceChildren();
+              perfilMessage.className = 'register-message';
+            }, 400);
+          
+          }, 2000);
+          
 
         } catch (erro) {
           perfilMessage.textContent = erro.message;
