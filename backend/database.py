@@ -16,7 +16,8 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={
         "options": "-csearch_path=orbion_v2,public"
-    }
+    },
+    pool_pre_ping=True
 )
 
 SessionLocal = sessionmaker(

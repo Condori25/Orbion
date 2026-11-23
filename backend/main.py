@@ -2,7 +2,10 @@
 import os
 import jwt
 
+from dotenv import load_dotenv
+
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 
 
 from datetime import datetime, timedelta, timezone
@@ -19,6 +22,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 from backend.database import engine, get_db
 
@@ -64,7 +70,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://orbionz.netlify.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
