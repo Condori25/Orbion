@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-
+from supabase import create_client
 
 from datetime import datetime, timedelta, timezone
 
@@ -18,7 +18,7 @@ from pydantic import BaseModel, EmailStr, Field
 from pwdlib import PasswordHash
 from sqlalchemy.exc import IntegrityError
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -31,6 +31,15 @@ from backend.database import engine, get_db
 password_hash = PasswordHash.recommended()
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_BUCKET = "projetos-imagens"
+
+supabase_admin = (
+    create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+    else None
+)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 60
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -263,6 +272,7 @@ def cadastrar_projeto(
         )
 
 
+
 @app.put("/api/projetos/{id_projeto}")
 def atualizar_projeto(
     id_projeto: int,
@@ -280,7 +290,7 @@ def atualizar_projeto(
                     data_inicio = :data_inicio,
                     data_fim = :data_fim,
                     status = :status,
-                    imagem_url = :imagem_url,
+                    imagem_url = COALESCE(:imagem_url, imagem_url),
                     objetivos = :objetivos,
                     publico_alvo = :publico_alvo,
                     metodologia = :metodologia,
@@ -321,6 +331,7 @@ def atualizar_projeto(
         )
 
 
+
 @app.delete("/api/projetos/{id_projeto}")
 def excluir_projeto(
     id_projeto: int,
@@ -328,36 +339,77 @@ def excluir_projeto(
     administrador=Depends(verificar_administrador)
 ):
     try:
-        resultado = db.execute(
+        # Buscar a capa do projeto
+        projeto = db.execute(
             text("""
-                DELETE FROM orbion_v2.projetos
-                WHERE id_projeto = :id_projeto
-                RETURNING id_projeto
+                SELECT imagem_storage_path
+                FROM orbion_v2.projetos
+                WHERE id_projeto = :id
             """),
-            {"id_projeto": id_projeto}
-        )
+            {"id": id_projeto}
+        ).mappings().first()
 
-        projeto = resultado.scalar_one_or_none()
-
-        if projeto is None:
+        if not projeto:
             raise HTTPException(
                 404,
                 "Projeto não encontrado."
             )
 
+        # Buscar os caminhos das imagens da galeria
+        imagens = db.execute(
+            text("""
+                SELECT storage_path
+                FROM orbion_v2.imagens_projetos
+                WHERE id_projeto = :id
+            """),
+            {"id": id_projeto}
+        ).mappings().all()
+
+        caminhos = [
+            imagem["storage_path"]
+            for imagem in imagens
+            if imagem["storage_path"]
+        ]
+
+        if projeto["imagem_storage_path"]:
+            caminhos.append(projeto["imagem_storage_path"])
+
+        # Excluir arquivos do Storage
+        if caminhos:
+            if not supabase_admin:
+                raise HTTPException(
+                    500,
+                    "Storage do Supabase não configurado."
+                )
+
+            supabase_admin.storage.from_(
+                SUPABASE_BUCKET
+            ).remove(caminhos)
+
+        # Excluir projeto e registros relacionados
+        db.execute(
+            text("""
+                DELETE FROM orbion_v2.projetos
+                WHERE id_projeto = :id
+            """),
+            {"id": id_projeto}
+        )
+
         db.commit()
 
         return {
-            "mensagem": "Projeto excluído com sucesso!",
-            "id_projeto": projeto
+            "mensagem": "Projeto e imagens excluídos com sucesso!",
+            "id_projeto": id_projeto
         }
 
     except HTTPException:
         db.rollback()
         raise
 
-    except Exception:
+    except Exception as erro:
         db.rollback()
+        print("Erro ao excluir projeto:", erro)
+
         raise HTTPException(
             500,
             "Erro interno ao excluir projeto."
@@ -1090,3 +1142,327 @@ def atualizar_perfil(
 
     except Exception:
         raise HTTPException(500, "Erro ao atualizar o perfil.")
+
+
+@app.post("/api/projetos/{id_projeto}/imagens")
+async def enviar_imagem_projeto(
+    id_projeto: int,
+    arquivo: UploadFile = File(...),
+    descricao: str = Form(""),
+    ordem: int = Form(0),
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    import uuid
+
+    if not supabase_admin:
+        raise HTTPException(
+            status_code=500,
+            detail="Storage do Supabase não configurado."
+        )
+
+    tipos_permitidos = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp"
+    }
+
+    extensao = tipos_permitidos.get(arquivo.content_type)
+
+    if not extensao:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato inválido. Envie JPG, PNG ou WEBP."
+        )
+
+    conteudo = await arquivo.read()
+
+    if not conteudo:
+        raise HTTPException(
+            status_code=400,
+            detail="O arquivo está vazio."
+        )
+
+    if len(conteudo) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail="A imagem deve ter no máximo 5 MB."
+        )
+
+    projeto = db.execute(
+        text("""
+            SELECT id_projeto
+            FROM orbion_v2.projetos
+            WHERE id_projeto = :id
+        """),
+        {"id": id_projeto}
+    ).fetchone()
+
+    if not projeto:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+
+    caminho = f"projetos/{id_projeto}/{uuid.uuid4().hex}{extensao}"
+
+    try:
+        supabase_admin.storage.from_(SUPABASE_BUCKET).upload(
+            caminho,
+            conteudo,
+            file_options={
+                "content-type": arquivo.content_type,
+                "upsert": "false"
+            }
+        )
+
+        imagem_url = supabase_admin.storage.from_(
+            SUPABASE_BUCKET
+        ).get_public_url(caminho)
+
+        resultado = db.execute(
+            text("""
+                INSERT INTO orbion_v2.imagens_projetos
+                    (id_projeto, imagem_url, storage_path, descricao, ordem)
+                VALUES
+                    (:id_projeto, :imagem_url, :storage_path, :descricao, :ordem)
+                RETURNING id_imagem
+            """),
+            {
+                "id_projeto": id_projeto,
+                "imagem_url": imagem_url,
+                "storage_path": caminho,
+                "descricao": descricao,
+                "ordem": ordem
+            }
+        )
+
+        id_imagem = resultado.scalar_one()
+        db.commit()
+
+        return {
+            "mensagem": "Imagem enviada com sucesso.",
+            "id_imagem": id_imagem,
+            "imagem_url": imagem_url
+        }
+
+    except Exception as erro:
+        db.rollback()
+
+        try:
+            supabase_admin.storage.from_(SUPABASE_BUCKET).remove([caminho])
+        except Exception:
+            pass
+
+        print("Erro ao enviar imagem:", erro)
+        raise HTTPException(
+            status_code=500,
+            detail="Não foi possível enviar a imagem."
+        )
+
+@app.get("/api/projetos/{id_projeto}/imagens")
+def listar_imagens_projeto(
+    id_projeto: int,
+    db: Session = Depends(get_db)
+):
+    projeto = db.execute(
+        text("""
+            SELECT id_projeto
+            FROM orbion_v2.projetos
+            WHERE id_projeto = :id
+        """),
+        {"id": id_projeto}
+    ).fetchone()
+
+    if not projeto:
+        raise HTTPException(
+            status_code=404,
+            detail="Projeto não encontrado."
+        )
+
+    imagens = db.execute(
+        text("""
+            SELECT
+                id_imagem,
+                id_projeto,
+                imagem_url,
+                descricao,
+                ordem,
+                criado_em
+            FROM orbion_v2.imagens_projetos
+            WHERE id_projeto = :id
+            ORDER BY ordem ASC, criado_em ASC
+        """),
+        {"id": id_projeto}
+    ).mappings().all()
+
+    return [dict(imagem) for imagem in imagens]
+
+@app.delete("/api/projetos/imagens/{id_imagem}")
+def excluir_imagem_projeto(
+    id_imagem: int,
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    if not supabase_admin:
+        raise HTTPException(
+            status_code=500,
+            detail="Storage do Supabase não configurado."
+        )
+
+    imagem = db.execute(
+        text("""
+            SELECT id_imagem, storage_path
+            FROM orbion_v2.imagens_projetos
+            WHERE id_imagem = :id
+        """),
+        {"id": id_imagem}
+    ).mappings().first()
+
+    if not imagem:
+        raise HTTPException(
+            status_code=404,
+            detail="Imagem não encontrada."
+        )
+
+    try:
+        if imagem["storage_path"]:
+            supabase_admin.storage.from_(SUPABASE_BUCKET).remove(
+                [imagem["storage_path"]]
+            )
+
+        db.execute(
+            text("""
+                DELETE FROM orbion_v2.imagens_projetos
+                WHERE id_imagem = :id
+            """),
+            {"id": id_imagem}
+        )
+
+        db.commit()
+
+        return {"mensagem": "Imagem excluída com sucesso."}
+
+    except Exception as erro:
+        db.rollback()
+        print("Erro ao excluir imagem:", erro)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Não foi possível excluir a imagem."
+        )
+
+
+@app.post("/api/projetos/{id_projeto}/imagem-capa")
+async def enviar_imagem_capa(
+    id_projeto: int,
+    arquivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    administrador=Depends(verificar_administrador)
+):
+    import uuid
+
+    if not supabase_admin:
+        raise HTTPException(
+            500,
+            "Storage do Supabase não configurado."
+        )
+
+    tipos_permitidos = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp"
+    }
+
+    extensao = tipos_permitidos.get(arquivo.content_type)
+
+    if not extensao:
+        raise HTTPException(
+            400,
+            "Formato inválido. Envie JPG, PNG ou WEBP."
+        )
+
+    conteudo = await arquivo.read()
+
+    if len(conteudo) > 5 * 1024 * 1024:
+        raise HTTPException(
+            400,
+            "A imagem deve ter no máximo 5 MB."
+        )
+
+    if not conteudo:
+        raise HTTPException(400, "O arquivo está vazio.")
+
+    projeto = db.execute(
+        text("""
+            SELECT imagem_storage_path
+            FROM orbion_v2.projetos
+            WHERE id_projeto = :id
+        """),
+        {"id": id_projeto}
+    ).mappings().first()
+
+    if not projeto:
+        raise HTTPException(404, "Projeto não encontrado.")
+
+    caminho = f"projetos/{id_projeto}/capa_{uuid.uuid4().hex}{extensao}"
+
+    try:
+        supabase_admin.storage.from_(SUPABASE_BUCKET).upload(
+            caminho,
+            conteudo,
+            file_options={
+                "content-type": arquivo.content_type,
+                "upsert": "false"
+            }
+        )
+
+        imagem_url = supabase_admin.storage.from_(
+            SUPABASE_BUCKET
+        ).get_public_url(caminho)
+
+        db.execute(
+            text("""
+                UPDATE orbion_v2.projetos
+                SET
+                    imagem_url = :imagem_url,
+                    imagem_storage_path = :caminho
+                WHERE id_projeto = :id
+            """),
+            {
+                "imagem_url": imagem_url,
+                "caminho": caminho,
+                "id": id_projeto
+            }
+        )
+
+        db.commit()
+
+        caminho_anterior = projeto["imagem_storage_path"]
+
+        if caminho_anterior:
+            try:
+                supabase_admin.storage.from_(
+                    SUPABASE_BUCKET
+                ).remove([caminho_anterior])
+            except Exception as erro:
+                print("Aviso: não foi possível remover a capa anterior:", erro)
+
+        return {
+            "mensagem": "Imagem de capa enviada com sucesso!",
+            "imagem_url": imagem_url
+        }
+
+    except Exception as erro:
+        db.rollback()
+
+        try:
+            supabase_admin.storage.from_(
+                SUPABASE_BUCKET
+            ).remove([caminho])
+        except Exception:
+            pass
+
+        print("Erro ao enviar imagem de capa:", erro)
+
+        raise HTTPException(
+            500,
+            "Não foi possível enviar a imagem de capa."
+        )
