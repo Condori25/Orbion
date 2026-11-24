@@ -324,17 +324,17 @@ def atualizar_projeto(
         raise
 
     except Exception as erro:
-    db.rollback()
+        db.rollback()
 
-    print("ERRO AO ATUALIZAR PROJETO:", repr(erro), flush=True)
+        print("ERRO AO ATUALIZAR PROJETO:", repr(erro), flush=True)
 
-    import traceback
-    traceback.print_exc()
+        import traceback
+        traceback.print_exc()
 
-    raise HTTPException(
-        500,
-        "Erro interno ao atualizar projeto."
-    )
+        raise HTTPException(
+            500,
+            "Erro interno ao atualizar projeto."
+        )
 
 
 
