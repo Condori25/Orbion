@@ -27,17 +27,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                         observer.unobserve(entrada.target);
                     }
                 });
-            }, {
-                threshold: 0.1
-            })
+            }, { threshold: 0.1 })
             : null;
 
         projetos.forEach((projeto, index) => {
             const titulo = projeto.titulo || "Projeto sem título";
             const tituloNormalizado = titulo.toLowerCase();
 
-            const banner = document.createElement("div");
+            const banner = document.createElement("a");
             banner.className = "project-banner scroll-animate";
+            banner.href = `detalhes-projeto.html?id=${encodeURIComponent(projeto.id_projeto)}`;
+            banner.setAttribute("aria-label", `Ver detalhes de ${titulo}`);
 
             if (index > 0) {
                 banner.classList.add("delay-100");

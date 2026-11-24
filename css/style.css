@@ -711,8 +711,18 @@ body.dark .page-title { color: var(--verde-claro); }
   transition: transform 0.4s ease;
 }
 
+.project-banner {
+  cursor: pointer;
+  text-decoration: none;
+}
+
 .project-banner:hover {
   transform: translateY(-5px);
+}
+
+.project-banner:focus-visible {
+  outline: 3px solid var(--verde-claro);
+  outline-offset: 4px;
 }
 
 .project-banner-content {
@@ -1287,117 +1297,254 @@ body.dark .register-section h2 {
 }
 
 
-/* ===== PAINEL ADMINISTRATIVO ===== */
+
+/* ==========================================
+   PAINEL ADMINISTRATIVO - ORBION
+========================================== */
 
 .admin-container {
-  width: min(1100px, 92%);
-  margin: 120px auto 60px;
-  color: #222;
+    width: min(1100px, 92%);
+    margin: 120px auto 70px;
+    color: var(--texto, #225318);
 }
 
-.admin-container > h1 {
-  font-size: 2.2rem;
-  margin-bottom: 10px;
+/* CABEÇALHO DA PÁGINA */
+
+.admin-page-header {
+    margin-bottom: 35px;
 }
 
-.admin-container > p {
-  margin-bottom: 35px;
-  color: #666;
+.admin-breadcrumb {
+    display: inline-block;
+    color: var(--verde-medio, #699658);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 15px;
 }
+
+.admin-page-header h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    color: var(--verde-escuro, #225318);
+    margin-bottom: 12px;
+}
+
+.admin-page-header p {
+    color: var(--texto-suave, #699658);
+    line-height: 1.6;
+}
+
+/* FORMULÁRIO E LISTAGEM */
 
 .admin-form-container,
 .admin-lista-container {
-  background: #fff;
-  padding: 30px;
-  border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    background: var(--card-bg, #ffffff);
+    color: var(--texto, #225318);
+    padding: 30px;
+    border-radius: 14px;
+    margin-bottom: 28px;
+    border: 1px solid rgba(105, 150, 88, 0.2);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
 }
 
 .admin-form-container h2,
 .admin-lista-container h2 {
-  margin-bottom: 25px;
+    color: var(--verde-escuro, #225318);
+    font-size: 1.4rem;
+    margin-bottom: 22px;
 }
 
+/* FORMULÁRIO */
+
 #form-projeto {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 #form-projeto label {
-  font-weight: 600;
-  margin-top: 8px;
+    color: var(--texto, #225318);
+    font-weight: 600;
+    margin-top: 8px;
 }
 
 #form-projeto input,
 #form-projeto textarea,
 #form-projeto select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 7px;
-  font: inherit;
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid rgba(105, 150, 88, 0.45);
+    border-radius: 8px;
+    background: var(--fundo, #ffffff);
+    color: var(--texto, #225318);
+    font: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#form-projeto input:focus,
+#form-projeto textarea:focus,
+#form-projeto select:focus {
+    border-color: var(--verde-medio, #699658);
+    box-shadow: 0 0 0 3px rgba(105, 150, 88, 0.15);
 }
 
 #form-projeto textarea {
-  min-height: 100px;
-  resize: vertical;
+    min-height: 110px;
+    resize: vertical;
+}
+
+#form-projeto input::placeholder,
+#form-projeto textarea::placeholder {
+    color: var(--texto-suave, #699658);
+}
+
+#form-projeto input:disabled,
+#form-projeto textarea:disabled,
+#form-projeto select:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* BOTÕES DO FORMULÁRIO */
+
+.admin-form-botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 15px;
 }
 
 #form-projeto button,
 .admin-projeto-card button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 7px;
-  cursor: pointer;
-  font-weight: 600;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, opacity 0.2s;
 }
 
 #btn-salvar {
-  background: #1677b8;
-  color: #fff;
+    background: var(--verde-escuro, #225318);
+    color: #ffffff;
+}
+
+#btn-salvar:hover {
+    background: var(--verde-medio, #699658);
+    transform: translateY(-1px);
 }
 
 #btn-cancelar {
-  background: #e5e5e5;
-  color: #222;
+    background: #e5e5e5;
+    color: #333333;
 }
 
+#btn-cancelar:hover {
+    background: #d5d5d5;
+}
+
+#form-projeto button:disabled,
+.admin-projeto-card button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* LISTAGEM */
+
+.admin-lista-header {
+    margin-bottom: 25px;
+}
+
+.admin-lista-header h2 {
+    margin-bottom: 8px;
+}
+
+.admin-lista-header p {
+    color: var(--texto-suave, #699658);
+    line-height: 1.5;
+}
+
+/* CARDS DOS PROJETOS */
+
 .admin-projeto-card {
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 15px;
+    background: var(--fundo, #ffffff);
+    border: 1px solid rgba(105, 150, 88, 0.3);
+    border-radius: 11px;
+    padding: 22px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.admin-projeto-card:hover {
+    border-color: var(--verde-medio, #699658);
+    transform: translateY(-2px);
 }
 
 .admin-projeto-card h3 {
-  margin-bottom: 10px;
+    color: var(--verde-escuro, #225318);
+    font-size: 1.15rem;
+    margin-bottom: 12px;
 }
 
 .admin-projeto-card p {
-  margin-bottom: 12px;
-  color: #555;
+    color: var(--texto-suave, #699658);
+    line-height: 1.6;
+    margin-bottom: 12px;
 }
 
 .admin-projeto-card button {
-  margin-right: 8px;
-  margin-top: 8px;
-  background: #1677b8;
-  color: #fff;
+    margin: 8px 8px 0 0;
+    background: var(--verde-escuro, #225318);
+    color: #ffffff;
+}
+
+.admin-projeto-card button:hover {
+    background: var(--verde-medio, #699658);
 }
 
 .admin-projeto-card button:last-child {
-  background: #c0392b;
+    background: #b83232;
 }
 
-@media (max-width: 600px) {
-  .admin-container {
-      margin-top: 90px;
-  }
+.admin-projeto-card button:last-child:hover {
+    background: #922525;
+}
 
-  .admin-form-container,
-  .admin-lista-container {
-      padding: 18px;
-  }
+/* RESPONSIVIDADE */
+
+@media (max-width: 600px) {
+
+    .admin-container {
+        width: 92%;
+        margin-top: 95px;
+        margin-bottom: 45px;
+    }
+
+    .admin-form-container,
+    .admin-lista-container {
+        padding: 20px 16px;
+        border-radius: 10px;
+    }
+
+    .admin-page-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .admin-form-botoes {
+        flex-direction: column;
+    }
+
+    .admin-form-botoes button {
+        width: 100%;
+    }
+
+    .admin-projeto-card {
+        padding: 17px;
+    }
+
+    .admin-projeto-card button {
+        margin-right: 5px;
+    }
 }
