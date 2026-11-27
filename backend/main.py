@@ -978,6 +978,123 @@ def consultar_inscricoes(
         )
 
 
+@app.post("/api/projetos/{id_projeto}/inscricao", status_code=201)
+def inscrever_em_projeto(
+    id_projeto: int,
+    credenciais: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    if not JWT_SECRET_KEY:
+        raise HTTPException(
+            500,
+            "Configuração de autenticação indisponível."
+        )
+
+    if credenciais is None:
+        raise HTTPException(
+            401,
+            "Faça login para se inscrever em um projeto.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    try:
+        payload = jwt.decode(
+            credenciais.credentials,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM]
+        )
+
+        id_usuario = int(payload["sub"])
+
+    except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
+        raise HTTPException(
+            401,
+            "Token inválido ou expirado."
+        )
+
+    try:
+        # Identificar o voluntário pela conta autenticada
+        voluntario = db.execute(
+            text("""
+                SELECT v.id_voluntario
+                FROM orbion_v2.usuarios u
+                INNER JOIN orbion_v2.voluntarios v
+                    ON v.id_usuario = u.id_usuario
+                WHERE u.id_usuario = :id_usuario
+                  AND u.ativo = TRUE
+            """),
+            {"id_usuario": id_usuario}
+        ).mappings().first()
+
+        if voluntario is None:
+            raise HTTPException(
+                403,
+                "Sua conta não possui um cadastro de voluntário ativo."
+            )
+
+        # Verificar se o projeto existe
+        projeto = db.execute(
+            text("""
+                SELECT id_projeto
+                FROM orbion_v2.projetos
+                WHERE id_projeto = :id_projeto
+            """),
+            {"id_projeto": id_projeto}
+        ).scalar_one_or_none()
+
+        if projeto is None:
+            raise HTTPException(
+                404,
+                "Projeto não encontrado."
+            )
+
+        # Registrar a inscrição
+        db.execute(
+            text("""
+                INSERT INTO orbion_v2.voluntarios_projetos (
+                    id_voluntario,
+                    id_projeto
+                )
+                VALUES (
+                    :id_voluntario,
+                    :id_projeto
+                )
+            """),
+            {
+                "id_voluntario": voluntario["id_voluntario"],
+                "id_projeto": id_projeto
+            }
+        )
+
+        db.commit()
+
+        return {
+            "mensagem": "Inscrição realizada com sucesso!",
+            "id_projeto": id_projeto,
+            "status": "Pendente"
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            "Você já possui uma inscrição neste projeto."
+        )
+
+    except Exception as erro:
+        db.rollback()
+        print("Erro ao realizar inscrição:", repr(erro), flush=True)
+
+        raise HTTPException(
+            500,
+            "Erro interno ao realizar a inscrição."
+        )
+
+
 
 @app.put("/api/perfil")
 def atualizar_perfil(
